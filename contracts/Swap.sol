@@ -7,7 +7,7 @@ import "./Utils.sol";
 // import "hardhat/console.sol";
 
 contract OrderBasedSwap {
-    uint256 orderCount;
+    uint256 public orderCount;
 
     struct SwapOrder {
         uint256 id;
@@ -59,6 +59,18 @@ contract OrderBasedSwap {
     }
 
     // @user: User functions
+
+    function getOrder(uint256 _orderId) external view returns (SwapOrder memory) {
+        if (!checkIfOrderExists(_orderId)) {
+            revert Errors.InvalidOrder();
+        }
+        return idToSwapOrder[_orderId];
+    }
+
+    function getMyOrders() external view returns (uint256[] memory) {
+        sanityCheck(msg.sender);
+        return depositorToCreatedOrderIds[msg.sender];
+    }
 
     // @dev: creates an order by allowing deposits X amount of token A expecting Y amount of tokenB in return
     // @user: user approval is needed for this function to run successfully
