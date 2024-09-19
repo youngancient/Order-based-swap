@@ -309,7 +309,7 @@ describe("OrderBased Swap", function () {
         order.amountOut + depositorBalanceBefore
       );
     });
-    it("Should revert if order has been completed", async function () {
+    it("Should revert if a buyer tries to buy an order that has been completed", async function () {
       const { swapContract, depositor1, winToken, casToken, buyer1 } =
         await loadFixture(deployOrderBasedSwap);
 
@@ -333,14 +333,227 @@ describe("OrderBased Swap", function () {
       let validId = 1;
       const order = await swapContract.getOrder(validId);
 
-      const depositorBalanceBefore = await casToken.balanceOf(depositor1);
+      await casToken.connect(buyer1).approve(swapContract, order.amountOut);
+
+      await swapContract.connect(buyer1).buyOrder(validId);
+
+      await expect(
+        swapContract.connect(buyer1).buyOrder(validId)
+      ).to.be.revertedWithCustomError(swapContract, "OrderCompletedAlready");
+    });
+    it("Should revert if a buyer tries to buy an order that has been canceled", async function () {
+      const { swapContract, depositor1, winToken, casToken, buyer1 } =
+        await loadFixture(deployOrderBasedSwap);
+
+      // create Order
+      const tokenIn = winToken;
+      const amountIn = ethers.parseUnits("1000", 18);
+
+      await winToken.connect(depositor1).approve(swapContract, amountIn);
+
+      const tokenOut = casToken;
+      const amountOut = ethers.parseUnits("2000", 18);
+
+      // const currentBlock = await ethers.provider.getBlock("latest");
+
+      await swapContract
+        .connect(depositor1)
+        .createOrder(amountIn, tokenIn, amountOut, tokenOut);
+
+      let validId = 1;
+      // cancel order
+      await swapContract.connect(depositor1).cancelOrder(validId);
+
+      // buy Order
+      // buyer1 -> has enough balance
+      const order = await swapContract.getOrder(validId);
+
+      await casToken.connect(buyer1).approve(swapContract, order.amountOut);
+
+      await expect(
+        swapContract.connect(buyer1).buyOrder(validId)
+      ).to.be.revertedWithCustomError(swapContract, "OrderCanceledAlready");
+    });
+    // should revert if order is canceled
+  });
+  describe("Cancel Order", function () {
+    it("Should revert if order Id is invalid", async function () {
+      const {
+        swapContract,
+        depositor1,
+        depositor2,
+        winToken,
+        casToken,
+        buyer1,
+      } = await loadFixture(deployOrderBasedSwap);
+
+      // create Order
+      const tokenIn = winToken;
+      const amountIn = ethers.parseUnits("1000", 18);
+
+      await winToken.connect(depositor1).approve(swapContract, amountIn);
+
+      const tokenOut = casToken;
+      const amountOut = ethers.parseUnits("2000", 18);
+
+      // const currentBlock = await ethers.provider.getBlock("latest");
+
+      await swapContract
+        .connect(depositor1)
+        .createOrder(amountIn, tokenIn, amountOut, tokenOut);
+
+      const invalidId = 3;
+      await expect(
+        swapContract.connect(depositor2).cancelOrder(invalidId)
+      ).to.be.revertedWithCustomError(swapContract, "InvalidOrder");
+    });
+    it("Should revert if one tries to cancel an order he did not create", async function () {
+      const {
+        swapContract,
+        depositor1,
+        depositor2,
+        winToken,
+        casToken,
+        buyer1,
+      } = await loadFixture(deployOrderBasedSwap);
+
+      // create Order
+      const tokenIn = winToken;
+      const amountIn = ethers.parseUnits("1000", 18);
+
+      await winToken.connect(depositor1).approve(swapContract, amountIn);
+
+      const tokenOut = casToken;
+      const amountOut = ethers.parseUnits("2000", 18);
+
+      // const currentBlock = await ethers.provider.getBlock("latest");
+
+      await swapContract
+        .connect(depositor1)
+        .createOrder(amountIn, tokenIn, amountOut, tokenOut);
+
+      const validId = 1;
+      await expect(
+        swapContract.connect(depositor2).cancelOrder(validId)
+      ).to.be.revertedWithCustomError(swapContract, "NotOwnerOfOrder");
+    });
+    it("Should revert if owner of order tries to cancel an order that has been completed", async function () {
+      const {
+        swapContract,
+        depositor1,
+        depositor2,
+        winToken,
+        casToken,
+        buyer1,
+      } = await loadFixture(deployOrderBasedSwap);
+
+      // create Order
+      const tokenIn = winToken;
+      const amountIn = ethers.parseUnits("1000", 18);
+
+      await winToken.connect(depositor1).approve(swapContract, amountIn);
+
+      const tokenOut = casToken;
+      const amountOut = ethers.parseUnits("2000", 18);
+
+      // const currentBlock = await ethers.provider.getBlock("latest");
+
+      await swapContract
+        .connect(depositor1)
+        .createOrder(amountIn, tokenIn, amountOut, tokenOut);
+
+      // buy Order
+      // buyer1 -> has enough balance
+      let validId = 1;
+      const order = await swapContract.getOrder(validId);
 
       await casToken.connect(buyer1).approve(swapContract, order.amountOut);
 
       await swapContract.connect(buyer1).buyOrder(validId);
 
-     
+      // cancel order after buyOrder is complete
+      await expect(
+        swapContract.connect(depositor1).cancelOrder(validId)
+      ).to.be.revertedWithCustomError(swapContract, "OrderCompletedAlready");
+    });
+    it("Should cancel order successfully", async function () {
+      const {
+        swapContract,
+        depositor1,
+        depositor2,
+        winToken,
+        casToken,
+        buyer1,
+      } = await loadFixture(deployOrderBasedSwap);
 
+      // create Order
+      const tokenIn = winToken;
+      const amountIn = ethers.parseUnits("1000", 18);
+
+      await winToken.connect(depositor1).approve(swapContract, amountIn);
+
+      const tokenOut = casToken;
+      const amountOut = ethers.parseUnits("2000", 18);
+
+      // const currentBlock = await ethers.provider.getBlock("latest");
+
+      await swapContract
+        .connect(depositor1)
+        .createOrder(amountIn, tokenIn, amountOut, tokenOut);
+
+      let validId = 1;
+      const order = await swapContract.getOrder(validId);
+
+      const depositorBalanceBeforeCancelling = await winToken.balanceOf(
+        depositor1
+      );
+      // cancel order if no buyOrder
+      await swapContract.connect(depositor1).cancelOrder(validId);
+
+      expect((await swapContract.getOrder(validId)).isCanceled).to.be.true;
+
+      expect(await winToken.balanceOf(depositor1)).to.equal(
+        depositorBalanceBeforeCancelling + order.amountIn
+      );
+    });
+    it("Should revert if owner tries to cancel order twice", async function () {
+      const {
+        swapContract,
+        depositor1,
+        depositor2,
+        winToken,
+        casToken,
+        buyer1,
+      } = await loadFixture(deployOrderBasedSwap);
+
+      // create Order
+      const tokenIn = winToken;
+      const amountIn = ethers.parseUnits("1000", 18);
+
+      await winToken.connect(depositor1).approve(swapContract, amountIn);
+
+      const tokenOut = casToken;
+      const amountOut = ethers.parseUnits("2000", 18);
+
+      // const currentBlock = await ethers.provider.getBlock("latest");
+
+      await swapContract
+        .connect(depositor1)
+        .createOrder(amountIn, tokenIn, amountOut, tokenOut);
+
+      let validId = 1;
+      const order = await swapContract.getOrder(validId);
+
+      const depositorBalanceBeforeCancelling = await winToken.balanceOf(
+        depositor1
+      );
+      // cancel order if no buyOrder
+      await swapContract.connect(depositor1).cancelOrder(validId);
+
+      // cancel again
+      await expect(
+        swapContract.connect(depositor1).cancelOrder(validId)
+      ).to.be.revertedWithCustomError(swapContract, "OrderCanceledAlready");
     });
   });
 });
