@@ -8,7 +8,7 @@ library Errors {
     error UnAuthorizedFunctionCall();
     error InSufficientBalance();
     error InvalidOrder();
-    error OrderCOmpletedAlready();
+    error OrderCompletedAlready();
     error OrderCanceledAlready();
     error TransferToDepositorFailed();
     error TransferToBuyerFailed();

@@ -140,7 +140,7 @@ contract OrderBasedSwap {
         SwapOrder memory swapOrder = idToSwapOrder[_orderId];
 
         if (swapOrder.isCompleted) {
-            revert Errors.OrderCOmpletedAlready();
+            revert Errors.OrderCompletedAlready();
         }
 
         if (swapOrder.isCanceled) {
@@ -202,7 +202,7 @@ contract OrderBasedSwap {
         }
 
         if (swapOrder.isCompleted) {
-            revert Errors.OrderCOmpletedAlready();
+            revert Errors.OrderCompletedAlready();
         }
 
         if (swapOrder.isCanceled) {
