@@ -52,9 +52,9 @@ contract OrderBasedSwap {
 
     // @user: User functions
 
-    // @dev: deposits an amount of tokens and creates an order simultaneously
+    // @dev: creates an order by allowing deposits X amount of token A expecting Y amount of tokenB in return
     // @user: user approval is needed for this function to run successfully
-    function depositTokens(
+    function createOrder(
         uint256 _amountIn,
         address _tokenIn,
         uint256 _amountOut,
@@ -98,5 +98,9 @@ contract OrderBasedSwap {
             _tokenOut,
             newSwapOrder.timeCreated
         );
+    }
+
+    function buyOrder()  external{
+        
     }
 }
