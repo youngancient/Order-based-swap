@@ -7,6 +7,9 @@ library Errors {
     error OnlyOwnerFunction();
     error UnAuthorizedFunctionCall();
     error InSufficientBalance();
+    error InvalidOrder();
+    error OrderCOmpletedAlready();
+    error OrderCanceledAlready();
 }
 
 library Events {
@@ -17,5 +20,14 @@ library Events {
         uint256 _amountOut,
         address _tokenOut,
         uint256 _timeCreated
+    );
+    event OrderExecutedSuccessfully(
+        address indexed buyer,
+        uint256 indexed _amountPaid,
+        uint256 indexed _amountReceived,
+        address _orderCreator,
+        address _tokenPaid,
+        address _tokenReceived,
+        uint256 _timeExecuted
     );
 }

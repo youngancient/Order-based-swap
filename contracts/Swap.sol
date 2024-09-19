@@ -50,6 +50,13 @@ contract OrderBasedSwap {
         return IERC20(_tokenAddress).balanceOf(_user);
     }
 
+    function checkIfOrderExists(uint256 _orderId) private view returns (bool) {
+        if (idToSwapOrder[_orderId].id == 0) {
+            return false;
+        }
+        return true;
+    }
+
     // @user: User functions
 
     // @dev: creates an order by allowing deposits X amount of token A expecting Y amount of tokenB in return
@@ -100,7 +107,51 @@ contract OrderBasedSwap {
         );
     }
 
-    function buyOrder()  external{
-        
+    // @user: user can buy an order
+    // the user needs to approve
+    function buyOrder(uint256 _orderId) external {
+        sanityCheck(msg.sender);
+        zeroValueCheck(_orderId);
+        if (!checkIfOrderExists(_orderId)) {
+            revert Errors.InvalidOrder();
+        }
+
+        SwapOrder memory swapOrder = idToSwapOrder[_orderId];
+
+        if(swapOrder.isCompleted){
+            revert Errors.OrderCOmpletedAlready();
+        }
+
+        if(swapOrder.isCanceled){
+            revert Errors.OrderCanceledAlready();
+        }
+
+        uint256 buyerTokenOutBalance = getUserTokenBalance(
+            swapOrder.tokenOut,
+            msg.sender
+        );
+        // check if buyer has enough tokens specified by the depositor as tokenOut
+        if (swapOrder.amountOut > buyerTokenOutBalance) {
+            revert Errors.InSufficientBalance();
+        }
+        IERC20(swapOrder.tokenOut).transferFrom(
+            msg.sender,
+            swapOrder.depositor,
+            swapOrder.amountOut
+        );
+        IERC20(swapOrder.tokenIn).transfer(msg.sender, swapOrder.amountIn);
+
+        // to prevent reentrancy
+        idToSwapOrder[_orderId].isCompleted = true;
+
+        emit Events.OrderExecutedSuccessfully(
+            msg.sender,
+            swapOrder.amountOut,
+            swapOrder.amountIn,
+            swapOrder.depositor,
+            swapOrder.tokenOut,
+            swapOrder.tokenIn,
+            block.timestamp
+        );
     }
 }
