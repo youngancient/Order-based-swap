@@ -10,6 +10,10 @@ library Errors {
     error InvalidOrder();
     error OrderCOmpletedAlready();
     error OrderCanceledAlready();
+    error TransferToDepositorFailed();
+    error TransferToBuyerFailed();
+    error DepositFailed();
+    error NotOwnerOfOrder();
 }
 
 library Events {
@@ -29,5 +33,11 @@ library Events {
         address _tokenPaid,
         address _tokenReceived,
         uint256 _timeExecuted
+    );
+    event OrderCancelledSuccessfully(
+        address indexed depositor,
+        address indexed _tokenIn,
+        uint256 indexed _amountIn,
+        uint256 _timeCancelled
     );
 }
